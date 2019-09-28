@@ -15,11 +15,20 @@ namespace KoganeUnityLibEditor
 			BindingFlags.Instance |
 			BindingFlags.NonPublic;
 
+		private const BindingFlags ROTATION_ATTR =
+			BindingFlags.Instance |
+			BindingFlags.Public;
+
 		//==============================================================================
 		// 定数(static readonly)
 		//==============================================================================
 		private static readonly object[]   RESET_ROTATION_PARAMETERS = { Vector3.zero, 0 };
 		private static readonly GUIContent PROPERTY_FIELD_LABEL      = new GUIContent( string.Empty );
+		
+		
+		private static readonly object[]   INVERSE_ROTATION_X = { new Vector3(180, 0, 0) };
+		private static readonly object[]   INVERSE_ROTATION_Y = { new Vector3(0, 180, 0) };
+		private static readonly object[]   INVERSE_ROTATION_Z = { new Vector3(0, 0, 180) };
 
 		//==============================================================================
 		// 変数
@@ -28,8 +37,10 @@ namespace KoganeUnityLibEditor
 		private SerializedProperty   m_rotationProperty;
 		private SerializedProperty   m_scaleProperty;
 		private GUIStyle             m_resetButtonStyle;
+		private GUIStyle             m_invButtonStyle;
 		private TransformRotationGUI m_transformRotationGUI;
 		private MethodInfo           m_setLocalEulerAnglesMethod;
+		private MethodInfo           m_rotateMethod;
 
 		//==============================================================================
 		// 関数
@@ -59,6 +70,17 @@ namespace KoganeUnityLibEditor
 					bindingAttr: SET_LOCAL_EULER_ANGLES_ATTR
 				);
 			}
+
+			if (m_rotateMethod == null)
+			{
+				var transformType = typeof( Transform );
+				m_rotateMethod = transformType.GetMethod
+				(
+					name: "Rotate",
+					bindingAttr: ROTATION_ATTR 
+				);
+			}
+				
 		}
 
 		/// <summary>
@@ -73,6 +95,15 @@ namespace KoganeUnityLibEditor
 				{
 					fixedHeight = 20,
 					fixedWidth  = 20,
+				};
+			}
+			
+			if ( m_invButtonStyle == null )
+			{
+				m_invButtonStyle = new GUIStyle( EditorStyles.toolbarButton )
+				{
+					fixedHeight = 20,
+					fixedWidth  = 50,
 				};
 			}
 
@@ -115,7 +146,6 @@ namespace KoganeUnityLibEditor
 						m_setLocalEulerAnglesMethod.Invoke( n, RESET_ROTATION_PARAMETERS );
 					}
 				}
-
 				// 入力欄
 				m_transformRotationGUI.RotationField();
 			}
@@ -133,6 +163,51 @@ namespace KoganeUnityLibEditor
 				EditorGUILayout.PropertyField( m_scaleProperty, PROPERTY_FIELD_LABEL );
 			}
 
+			
+			// 回転角の入力欄を表示
+			using ( new EditorGUILayout.HorizontalScope() )
+			{
+				// リセットボタン
+				if ( GUILayout.Button( "XInv", m_invButtonStyle ) )
+				{
+					var targetObjects = m_rotationProperty.serializedObject.targetObjects;
+
+					Undo.RecordObjects( targetObjects, "Inspector" );
+
+					foreach ( var n in targetObjects )
+					{
+						m_rotateMethod.Invoke( n, INVERSE_ROTATION_X );
+					}
+				}
+				
+				if ( GUILayout.Button( "YInv", m_invButtonStyle ) )
+				{
+					var targetObjects = m_rotationProperty.serializedObject.targetObjects;
+
+					Undo.RecordObjects( targetObjects, "Inspector" );
+
+					foreach ( var n in targetObjects )
+					{
+						
+						m_rotateMethod.Invoke( n, INVERSE_ROTATION_Y );
+					}
+				}
+				
+				if ( GUILayout.Button( "ZInv", m_invButtonStyle ) )
+				{
+					var targetObjects = m_rotationProperty.serializedObject.targetObjects;
+
+					Undo.RecordObjects( targetObjects, "Inspector" );
+
+					foreach ( var n in targetObjects )
+					{
+						
+						m_rotateMethod.Invoke( n, INVERSE_ROTATION_Y );
+					}
+				}
+			}
+
+			
 			// 変更を反映
 			serializedObject.ApplyModifiedProperties();
 
